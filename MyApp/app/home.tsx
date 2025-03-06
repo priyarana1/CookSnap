@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Modal, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, StatusBar, Modal, TextInput, Alert, ScrollView, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { auth, storage, db } from '../services/firebase';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+
+interface Post {
+  id: string;
+  instructions: string;
+  difficulty: string;
+  time: string;
+  imageUrl: string;
+  createdAt: number;
+  userId: string;
+}
 
 export default function HomeScreen() {
   const [modalVisible, setModalVisible] = useState(false);
@@ -11,7 +25,109 @@ export default function HomeScreen() {
   const [showDifficultyDropdown, setShowDifficultyDropdown] = useState(false);
   const [showTimeDropdown, setShowTimeDropdown] = useState(false);
   const [instructions, setInstructions] = useState('');
+  const [uploadText, setUploadText] = useState('Upload Image');
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+
+  const [image, setImage] = useState<string | null>(null);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch posts when component mounts
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const fetchPosts = async () => {
+    try {
+      const postsQuery = query(collection(db, 'posts'), orderBy('createdAt', 'desc'));
+      const querySnapshot = await getDocs(postsQuery);
+      const postsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Post[];
+      setPosts(postsData);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+      Alert.alert('Error', 'Failed to load posts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePost = async () => {
+    if (!image) {
+      Alert.alert('Error', 'Please select an image first');
+      return;
+    }
+
+    if (!instructions.trim()) {
+      Alert.alert('Error', 'Please enter instructions');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+
+      // 1. Upload image to Firebase Storage
+      const response = await fetch(image);
+      const blob = await response.blob();
+      const imageRef = ref(storage, `posts/${Date.now()}`);
+      await uploadBytes(imageRef, blob);
+      const imageUrl = await getDownloadURL(imageRef);
+
+      // 2. Create post document in Firestore
+      const postData = {
+        instructions: instructions.trim(),
+        difficulty,
+        time,
+        imageUrl,
+        createdAt: Date.now(),
+        userId: auth.currentUser?.uid,
+      };
+
+      await addDoc(collection(db, 'posts'), postData);
+
+      // Reset form and close modal
+      setInstructions('');
+      setDifficulty('1');
+      setTime('0-15 min');
+      setImage(null);
+      setUploadText('Upload Image');
+      setAddPostModalVisible(false);
+      Alert.alert('Success', 'Post created successfully!');
+    } catch (error) {
+      console.error('Error creating post:', error);
+      Alert.alert('Error', 'Failed to create post. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const pickImage = async () => {
+    const { status } = await ImagePicker.getMediaLibraryPermissionsAsync();
+
+    if (status !== 'granted') {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        alert("Permission to access media library is required!");
+        return;
+      }
+    }
+
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+      setUploadText('Image Selected');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -25,6 +141,31 @@ export default function HomeScreen() {
           <Ionicons name="person-circle-outline" size={30} color="#007BFF" />
         </TouchableOpacity>
       </View>
+
+      <ScrollView style={styles.postsContainer}>
+        {loading ? (
+          <Text style={styles.loadingText}>Loading posts...</Text>
+        ) : posts.length === 0 ? (
+          <Text style={styles.noPostsText}>No posts yet.</Text>
+        ) : (
+          posts.map((post) => (
+            <View key={post.id} style={styles.postCard}>
+              <Image 
+                source={{ uri: post.imageUrl }} 
+                style={styles.postImage}
+                resizeMode="cover"
+              />
+              <View style={styles.postContent}>
+                <Text style={styles.postInstructions}>{post.instructions}</Text>
+                <View style={styles.postMetadata}>
+                  <Text style={styles.metadataText}>Difficulty: {post.difficulty}</Text>
+                  <Text style={styles.metadataText}>Time: {post.time}</Text>
+                </View>
+              </View>
+            </View>
+          ))
+        )}
+      </ScrollView>
 
       <Modal
         animationType="slide"
@@ -43,11 +184,9 @@ export default function HomeScreen() {
             value={instructions} 
             onChangeText={setInstructions} 
           />
-          <View style={styles.uploadBox}><Text>UPLOAD</Text></View>
-          <Text style={styles.label}>Ingredients</Text>
-          <View style={styles.searchContainer}>
-            <TextInput style={styles.input} placeholder="Search..." placeholderTextColor="#888" />
-          </View>
+          <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
+            <Text>{uploadText}</Text>
+          </TouchableOpacity>
           <View style={styles.selectionContainer}>
             <Text style={styles.label}>DIFFICULTY</Text>
             <TouchableOpacity style={styles.dropdown} onPress={() => {
@@ -82,7 +221,13 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
-          <TouchableOpacity style={styles.postButton}><Text style={styles.buttonText}>POST →</Text></TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.postButton, isLoading && styles.disabledButton]} 
+            onPress={handlePost}
+            disabled={isLoading}
+          >
+            <Text style={styles.buttonText}>{isLoading ? 'Posting...' : 'POST →'}</Text>
+          </TouchableOpacity>
           <TouchableOpacity style={styles.modalClose} onPress={() => setAddPostModalVisible(false)}>
             <Text style={styles.modalCloseText}>Close</Text>
           </TouchableOpacity>
@@ -91,8 +236,6 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -238,5 +381,56 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     alignItems: 'center',
     marginTop: 10,
+  },
+  disabledButton: {
+    opacity: 0.7,
+  },
+  postsContainer: {
+    flex: 1,
+    width: '100%',
+    paddingHorizontal: 10,
+  },
+  postCard: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    marginVertical: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  postImage: {
+    width: '100%',
+    height: 200,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  postContent: {
+    padding: 15,
+  },
+  postInstructions: {
+    fontSize: 16,
+    marginBottom: 10,
+  },
+  postMetadata: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  metadataText: {
+    color: '#666',
+    fontSize: 14,
+  },
+  loadingText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#666',
+  },
+  noPostsText: {
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: 16,
+    color: '#666',
   },
 });
