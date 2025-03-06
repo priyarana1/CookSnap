@@ -5,7 +5,7 @@ import { getStorage } from "firebase/storage";
 
 // Your Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyBTlxqUawpHuCxXLP0oQGdachSPVMvvr2I",
+  apiKey: "AIzaSyArTWKim19I0UNVIprsp-vu_rgw4HhzCec",
   authDomain: "tastebuds-40a88.firebaseapp.com",
   projectId: "tastebuds-40a88",
   storageBucket: "tastebuds-40a88.appspot.com", // FIXED .com

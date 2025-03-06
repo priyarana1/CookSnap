@@ -6,6 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { auth, storage, db } from '../services/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { collection, addDoc, getDocs, query, orderBy } from 'firebase/firestore';
+import { Keyboard } from "react-native";
+
 
 interface Post {
   id: string;
@@ -177,12 +179,14 @@ export default function HomeScreen() {
           <Text style={styles.modalTitle}>Enter Details</Text>
           <Text style={styles.label}>Instructions</Text>
           <TextInput 
-            style={styles.aboutBox} 
-            placeholder="Enter instructions..." 
-            placeholderTextColor="#888" 
-            multiline 
-            value={instructions} 
-            onChangeText={setInstructions} 
+             placeholder="Enter instructions"
+             value={instructions}
+             onChangeText={setInstructions}
+             multiline
+             style={styles.input}
+             returnKeyType="done"
+             onSubmitEditing={() => Keyboard.dismiss()}
+             blurOnSubmit={true}  // 👈 Ensures "Done" dismisses keyboard
           />
           <TouchableOpacity style={styles.uploadBox} onPress={pickImage}>
             <Text>{uploadText}</Text>
