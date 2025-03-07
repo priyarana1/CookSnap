@@ -23,9 +23,14 @@ export default function HomeScreen() {
 useEffect(() => {
     // Sample recipes data
     setRecipes([
-      { id: '1', title: 'Spaghetti Carbonara', difficulty: '2', time: '20 min', image: 'https://www.allrecipes.com/thmb/zJzTLhtUWknHXVoFIzysljJ9wR8=/0x512/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/11973-spaghetti-carbonara-ii-DDMFS-4x3-6edea51e421e4457ac0c3269f3be5157.jpg' },
-      { id: '2', title: 'Grilled Chicken', difficulty: '3', time: '45 min', image: 'https://www.inspiredtaste.net/wp-content/uploads/2021/06/Grilled-Chicken-Recipe-5-1200.jpg' },
-      { id: '3', title: 'Vegetable Stir Fry', difficulty: '1', time: '15 min', image: 'https://kristineskitchenblog.com/wp-content/uploads/2024/01/vegetable-stir-fry-22-3.jpg' },
+      { id: '1', title: 'Spaghetti Carbonara', difficulty: '2', time: '15-30 min', image: 'https://www.allrecipes.com/thmb/zJzTLhtUWknHXVoFIzysljJ9wR8=/0x512/filters:no_upscale():max_bytes(150000):strip_icc():format(webp)/11973-spaghetti-carbonara-ii-DDMFS-4x3-6edea51e421e4457ac0c3269f3be5157.jpg' },
+      { id: '2', title: 'Grilled Chicken', difficulty: '3', time: '45-60 min', image: 'https://www.inspiredtaste.net/wp-content/uploads/2021/06/Grilled-Chicken-Recipe-5-1200.jpg' },
+      { id: '3', title: 'Vegetable Stir Fry', difficulty: '1', time: '0-15 min', image: 'https://kristineskitchenblog.com/wp-content/uploads/2024/01/vegetable-stir-fry-22-3.jpg' },
+      { id: '4', title: 'Tacos', difficulty: '1', time: '15-30 min', image: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/73/001_Tacos_de_carnitas%2C_carne_asada_y_al_pastor.jpg/800px-001_Tacos_de_carnitas%2C_carne_asada_y_al_pastor.jpg'},
+      { id: '5', title: 'Chicken Alfredo', difficulty: '2', time: '30-45 min', image: 'https://iwashyoudry.com/wp-content/uploads/2022/08/Chicken-Alfredo-Low-Res-21.jpg' },
+      { id: '6', title: 'Vegetable Soup', difficulty: '1', time: '30-45 min', image: 'https://feelgoodfoodie.net/wp-content/uploads/2024/11/Creamy-Vegetable-Soup-12.jpg' },
+      { id: '7', title: 'Beef Stir Fry', difficulty: '2', time: '15-30 min', image: 'https://www.lemonblossoms.com/wp-content/uploads/2019/03/Easy-Beef-Stir-Fry-S2.jpg' },
+      { id: '8', title: 'Shrimp Scampi', difficulty: '2', time: '15-30 min', image: 'https://static01.nyt.com/images/2022/06/02/dining/ShrimpScampi_thumb/ShrimpScampi_thumb-mediumSquareAt3X.jpg' }
     ]);
   }, []);
 
@@ -235,10 +240,12 @@ useEffect(() => {
 
 const styles = StyleSheet.create({
   recipeItem: {
+    color:'#ff5733',
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
     padding: 15,
+    width: 350,
     marginVertical: 8,
     borderRadius: 10,
     shadowColor: '#000',
@@ -254,9 +261,12 @@ const styles = StyleSheet.create({
     marginRight: 12, 
   },
   recipeInfo: {
+    color: '#ff5733',
     flex: 1,
   },
   recipeTitle: {
+    maxWidth: 200,
+    color: '#ff5733',
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 5,
